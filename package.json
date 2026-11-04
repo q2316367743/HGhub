@@ -1,41 +1,31 @@
 {
-  "name": "huangguo-client",
+  "name": "hghub",
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "description": "HGhub 黄果短剧 · 搭手插件",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "tauri": "tauri",
-    "app:dev": "tauri dev",
-    "app:build": "tauri build",
-    "android:init": "tauri android init",
-    "android:dev": "tauri android dev",
-    "android:build": "tauri android build"
-  },
-  "dependencies": {
-    "@tauri-apps/api": "^2.12.4",
-    "clsx": "2.1.1",
-    "hls.js": "1.6.15",
-    "react": "19.2.6",
-    "react-dom": "19.2.6",
-    "tailwind-merge": "3.4.0"
+    "typecheck": "tsc --noEmit",
+    "dev:core": "dashou-plugin build && node scripts/copy-dev-core.mjs",
+    "plugin:build": "dashou-plugin build && node scripts/copy-dev-core.mjs"
   },
   "devDependencies": {
+    "@dashou/api": "link:../../app/da-shou-plugin-ext/packages/api",
+    "@dashou/cli": "link:../../app/da-shou-plugin-ext/packages/cli",
+    "@dashou/core": "link:../../app/da-shou-plugin-ext/packages/core",
     "@tailwindcss/vite": "4.1.17",
-    "@tauri-apps/cli": "2.10.1",
     "@types/node": "22.19.17",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "5.1.1",
+    "hls.js": "1.6.15",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3",
     "vite": "7.3.2"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
   }
 }

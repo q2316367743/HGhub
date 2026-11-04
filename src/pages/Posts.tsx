@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { api, cover, fmt, platform } from "../api";
+import { api, fmt, platform } from "../api";
 import type { Post } from "../types";
 import { useStore } from "../store";
 import { Empty, Img } from "../components/ui";
 import Player from "../components/Player";
+import { ArticleBody } from "../components/Panels";
 import { IBack, IFireF, IPlayF } from "../icons";
-import { sanitizeHtml } from "../html";
 
 /* ================= 吃瓜列表 ================= */
 export function PostsPage({ onBack, wide }: { onBack: () => void; wide: boolean }) {
@@ -116,7 +116,7 @@ export function PostDetail({ id, onBack }: { id: number; onBack: () => void }) {
           <>
             <div className="relative w-full bg-black" style={{ height: "min(40vh, 360px)" }}>
               {play && post.video_url ? (
-                <Player src={post.video_url} poster={cover(post.cover)} autoPlay controls className="w-full h-full" />
+                <Player src={post.video_url} poster={post.cover} autoPlay controls className="w-full h-full" />
               ) : (
                 <button onClick={() => { if (post.video_url) setPlay(true); else toast("该帖子没有视频", "info"); }} className="absolute inset-0">
                   <Img src={post.cover} eager />
@@ -141,7 +141,7 @@ export function PostDetail({ id, onBack }: { id: number; onBack: () => void }) {
               </div>
               {post.content && (
                 isHtml(post.content)
-                  ? <div className="article-body mt-3.5" dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }} />
+                  ? <div className="mt-3.5"><ArticleBody html={post.content} /></div>
                   : <div className="mt-3.5 rounded-(--r-md) bg-s2 p-3.5 text-[12.5px] leading-relaxed text-on/80 whitespace-pre-wrap">{post.content}</div>
               )}
             </div>

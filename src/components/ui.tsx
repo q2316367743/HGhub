@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { cover } from "../api";
+import { useCover } from "../api";
 import { useStore } from "../store";
 import { ICheck, IClose, IHeartF, ISparkF, IStarF } from "../icons";
 
@@ -145,13 +145,27 @@ export function Img({ src, alt = "", className = "", eager = false, raw = false 
 }) {
   const [ok, setOk] = useState(false);
   const [err, setErr] = useState(false);
-  const url = raw ? src : cover(src);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const covered = useCover(raw ? "" : src);
+  const url = raw ? src : covered;
+  useEffect(() => { setOk(false); setErr(false); }, [url]);
+  /* data URL 命中缓存时 load 可能在 React 挂上监听前就触发，补一次 complete 检查 */
+  useEffect(() => {
+    const img = imgRef.current;
+    if (!img || url === "") return;
+    if (img.complete) {
+      if (img.naturalWidth > 0) setOk(true);
+      else setErr(true);
+    }
+  }, [url]);
   return (
     <div className={`absolute inset-0 overflow-hidden ${className}`}>
       {!ok && !err && <div className="absolute inset-0 shimmer" />}
       {err && <div className="absolute inset-0 bg-s3" />}
-      <img src={url} alt={alt} loading={eager ? "eager" : "lazy"} onLoad={() => setOk(true)} onError={() => setErr(true)}
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${ok ? "opacity-100" : "opacity-0"}`} draggable={false} />
+      {url !== "" && (
+        <img ref={imgRef} src={url} alt={alt} loading={eager ? "eager" : "lazy"} onLoad={() => setOk(true)} onError={() => setErr(true)}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${ok ? "opacity-100" : "opacity-0"}`} draggable={false} />
+      )}
     </div>
   );
 }

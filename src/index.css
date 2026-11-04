@@ -175,6 +175,11 @@ input[type="range"].hg-range::-webkit-slider-thumb { -webkit-appearance: none; w
 .win-titlebar {
   height: 44px; display: flex; align-items: center; gap: 6px; padding: 0 8px 0 14px;
   background: var(--p-bg); user-select: none;
+  /* 无边框窗口：标题栏整条可拖窗，按钮区域单独排除 */
+  -webkit-app-region: drag; app-region: drag;
+}
+.win-caption-tool, .win-caption-buttons button {
+  -webkit-app-region: no-drag; app-region: no-drag;
 }
 .win-wordmark { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--p-on); letter-spacing: .2px; }
 .win-wordmark-light { font-weight: 400; color: var(--p-mut); }

@@ -1,6 +1,7 @@
 import { useEffect, useImperativeHandle, useRef, forwardRef, useState } from "react";
 import Hls from "hls.js";
-import { playlist } from "../api";
+import { mediaUrl } from "../api";
+import { MediaLoader } from "../hlsLoader";
 
 export type VideoHandle = {
   el: () => HTMLVideoElement | null;
@@ -66,9 +67,7 @@ const VideoSurface = forwardRef<VideoHandle, Props>(function VideoSurface(
     setReady(false);
     if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
 
-    const proxied = /^https?:\/\/hg\.localhost\//.test(src);
-    const url = proxied ? src : playlist(src);
-    const useHls = !url.includes("/seg?u=");
+    const url = mediaUrl(src);
 
     /* 换源时先把音量/倍速套回去：hls 重新 attach 后浏览器会把它们重置成默认值 */
     const applySettings = () => {
@@ -80,8 +79,9 @@ const VideoSurface = forwardRef<VideoHandle, Props>(function VideoSurface(
     };
     applySettings();
 
-    if (useHls && Hls.isSupported()) {
+    if (Hls.isSupported()) {
       const hls = new Hls({
+        loader: MediaLoader,
         enableWorker: true,
         maxBufferLength: 30,
         backBufferLength: 30,
@@ -103,8 +103,7 @@ const VideoSurface = forwardRef<VideoHandle, Props>(function VideoSurface(
         else { hls.destroy(); hlsRef.current = null; }
       });
     } else {
-      video.src = url;
-      if (autoPlay) video.play().catch(() => {});
+      onError?.("当前环境不支持 HLS 播放");
     }
 
     return () => {

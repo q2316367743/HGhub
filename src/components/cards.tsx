@@ -1,5 +1,5 @@
 import React from "react";
-import { cover, fmt } from "../api";
+import { fmt } from "../api";
 import type { VideoCard } from "../types";
 import { IHeartF, IPlayF } from "../icons";
 import { Img } from "./ui";

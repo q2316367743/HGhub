@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWindow } from "@dashou/api/window";
 import { useStore, type Tab } from "../store";
 import { Avatar } from "./ui";
 import {
@@ -14,24 +14,32 @@ export function WindowsTitleBar({ collapsed, onToggle }: { collapsed: boolean; o
   const [maxed, setMaxed] = useState(false);
 
   useEffect(() => {
-    let un: (() => void) | undefined;
-    appWindow().isMaximized().then(setMaxed).catch(() => {});
-    appWindow().onResized(() => { appWindow().isMaximized().then(setMaxed).catch(() => {}); })
-      .then((f: () => void) => { un = f; }).catch(() => {});
-    return () => { un?.(); };
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+    const sync = () => {
+      appWindow().isMaximized().then((value) => { if (!disposed) setMaxed(value); }).catch(() => {});
+    };
+    sync();
+    appWindow().onResized(sync).then((off) => {
+      if (disposed) off();
+      else unlisten = off;
+    }).catch(() => {});
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
   }, []);
 
   return (
-    <header className="win-titlebar" data-tauri-drag-region
-      onDoubleClick={(e) => { if (!(e.target as HTMLElement).closest("button")) appWindow().toggleMaximize().catch(() => {}); }}>
-      <div className="win-wordmark" data-tauri-drag-region>
+    <header className="win-titlebar">
+      <div className="win-wordmark">
         <Logo size={24} />
         <span>HG<span className="win-wordmark-light">hub</span></span>
       </div>
       <button className="win-caption-tool" aria-label={collapsed ? "展开侧栏" : "收起侧栏"} onClick={onToggle}>
         <ISidebar size={17} strokeWidth={1.7} />
       </button>
-      <div className="win-drag-region" data-tauri-drag-region />
+      <div className="win-drag-region" />
       <button className="win-caption-tool" aria-label="切换外观" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
         {theme === "dark" ? <ISun size={17} strokeWidth={1.7} /> : <IMoon size={17} strokeWidth={1.7} />}
       </button>
@@ -87,7 +95,7 @@ export function WindowsRail({ collapsed }: { collapsed: boolean }) {
               <small>{user ? "你的精彩，都在这里" : "留住每一次心动"}</small>
             </span>
           </button>
-          <span className="win-sidebar-version">HGhub for Windows 1.0.0</span>
+          <span className="win-sidebar-version">HGhub · 搭手插件 1.0.0</span>
         </div>
       </div>
     </nav>

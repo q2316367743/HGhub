@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, cover, fmt, fmtTime, mediaUrl, platform } from "../api";
+import { api, copyText, fmt, fmtTime, useCover } from "../api";
 import type { Detail, Episode, Post, VideoCard } from "../types";
 import { useStore } from "../store";
 import { Avatar, Img, Sheet } from "./ui";
 import VideoSurface, { type VideoHandle } from "./VideoSurface";
 import PlayerControls from "./PlayerControls";
 import { ArticlePanel, CommentsPanel, EpisodesPanel } from "./Panels";
-import { sanitizeHtml } from "../html";
 import { setBackHandler } from "../back";
 import {
   IBack, IBoltF, IChevronDown, IChevronUp, IClose, ICommentF, ICompress, IExpand, IFileText, IHeart, IHeartF,
@@ -32,7 +31,7 @@ const stripHtml = (s: string) => s.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, "
 export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind = "video", active, bottomInset, onBack, onNearEnd }: Props) {
   const store = useStore();
   const { isLiked, isFav, toggleLikeLocal, toggleFavLocal, toggleFollowLocal, muted, setMuted, volume, setVolume, toast, addHistory, user, setLoginOpen } = store;
-  const isDesktop = platform === "windows";
+  const isDesktop = true;
 
   const boxRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<VideoHandle>(null);
@@ -130,9 +129,9 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
         episodes: detail?.episodes || [],
       };
 
-  const posterUrl = cover(meta.cover, 900);
+  const posterUrl = useCover(meta.cover);
   const hasVideo = kind === "video" || !!post?.video_url;
-  const articleHtml = kind === "post" && !hasVideo ? sanitizeHtml(post?.content || "") : "";
+  const articleHtml = kind === "post" && !hasVideo ? (post?.content || post?.desc || "") : "";
 
   /* 倍速：长按 / 锁定 → 2.0x，否则用基准倍速 */
   const effRate = holdSpeed || speedLock ? 2 : rate;
@@ -586,7 +585,7 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
 
                 <button onClick={() => {
                   const u = kind === "post" ? (posts[curId]?.video_url || meta.title) : `https://huangguoai.com/video/${curId}/`;
-                  navigator.clipboard?.writeText(u).then(() => toast("链接已复制", "ok")).catch(() => {});
+                  copyText(u).then((ok) => toast(ok ? "链接已复制" : "复制失败", ok ? "ok" : "info"));
                 }} className="flex flex-col items-center gap-1 pressable">
                   <ILink size={25} className="text-white tsh" />
                   <span className="text-[10.5px] text-white/90">分享</span>
@@ -772,6 +771,8 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
               <EpisodesPanel videoId={curId} episodes={episodes} current={curEp} onPick={pickEp} onClose={() => setPanel(null)} />
             ) : panel === "comments" ? (
               <CommentsPanel videoId={curId} ep={curEp} total={meta.comment} kind={kind} onClose={() => setPanel(null)} />
+            ) : panel === "article" ? (
+              <ArticlePanel title={meta.title} html={articleHtml} cover={meta.cover} hot={post?.hot} onClose={() => setPanel(null)} />
             ) : null}
           </div>
         </div>
@@ -780,6 +781,8 @@ export default function Feed({ videoIds, startIndex = 0, title = "", mode, kind 
           <div className="flex flex-col h-full" style={{ height: "72vh" }}>
             {panel === "episodes" ? (
               <EpisodesPanel videoId={curId} episodes={episodes} current={curEp} onPick={pickEp} onClose={() => setPanel(null)} />
+            ) : panel === "article" ? (
+              <ArticlePanel title={meta.title} html={articleHtml} cover={meta.cover} hot={post?.hot} onClose={() => setPanel(null)} />
             ) : (
               <CommentsPanel videoId={curId} ep={curEp} total={meta.comment} kind={kind} onClose={() => setPanel(null)} />
             )}

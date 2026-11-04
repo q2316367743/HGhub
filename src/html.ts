@@ -1,5 +1,3 @@
-import { LOCAL } from "./api";
-
 /** 站点根地址：正文里的相对路径要补全 */
 const SITE = "https://huangguoai.com";
 
@@ -14,8 +12,11 @@ function abs(raw: string): string {
   return `${SITE}/${s.replace(/^\.\//, "")}`;
 }
 
-/** 把正文里的图片换成走本地协议（带 Referer / 解密能力） */
-export function proxyImages(html: string): string {
+/**
+ * 正文图片改写成 `data-hg-src`：窗口不能直连外网图，
+ * 由 ArticleBody 逐张调 core 下载 / 解密后写成 data URL。
+ */
+function prepareImages(html: string): string {
   if (!html) return "";
   const doc = new DOMParser().parseFromString(html, "text/html");
   doc.querySelectorAll("img").forEach((img) => {
@@ -31,11 +32,11 @@ export function proxyImages(html: string): string {
       img.remove();
       return;
     }
-    img.setAttribute("src", `${LOCAL}/img?u=${encodeURIComponent(src)}`);
+    img.setAttribute("data-hg-src", src);
+    img.removeAttribute("src");
     img.removeAttribute("srcset");
     img.removeAttribute("data-src");
     img.removeAttribute("data-original");
-    img.removeAttribute("loading");
     img.setAttribute("loading", "lazy");
   });
   // 正文链接补全，避免点开指向本地
@@ -60,5 +61,5 @@ export function sanitizeHtml(html: string): string {
       if ((name === "href" || name === "src") && /^\s*javascript:/i.test(attr.value)) el.removeAttribute(attr.name);
     }
   });
-  return proxyImages(doc.body.innerHTML);
+  return prepareImages(doc.body.innerHTML);
 }

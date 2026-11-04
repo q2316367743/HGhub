@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
-import { fmtTime, playlist } from "../api";
+import { fmtTime, mediaUrl, useCover } from "../api";
+import { MediaLoader } from "../hlsLoader";
 import { ICompress, IExpand, IPauseF, IPlayF, IVol, IVolMute } from "../icons";
 
 type Props = {
@@ -31,16 +32,18 @@ export default function Player({
   const [full, setFull] = useState(false);
   const [rate, setRate] = useState(1);
   const [errMsg, setErrMsg] = useState<string>("");
+  const posterUrl = useCover(poster);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
-    const url = playlist(src);
+    const url = mediaUrl(src);
 
     if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
 
     if (Hls.isSupported()) {
       const hls = new Hls({
+        loader: MediaLoader,
         enableWorker: true,
         lowLatencyMode: false,
         maxBufferLength: 24,
@@ -65,9 +68,7 @@ export default function Player({
         else { hls.destroy(); hlsRef.current = null; }
       });
     } else {
-      // Safari / 部分 WebView 原生支持 HLS
-      video.src = url;
-      if (autoPlay) video.play().catch(() => setPlaying(false));
+      setErrMsg("当前环境不支持 HLS 播放");
     }
 
     return () => {
@@ -123,7 +124,7 @@ export default function Player({
     <div ref={wrapRef} className={`relative bg-black overflow-hidden group ${className}`}>
       <video
         ref={videoRef}
-        poster={poster}
+        poster={posterUrl}
         playsInline
         loop={loop}
         className="w-full h-full object-contain bg-black"

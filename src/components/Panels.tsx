@@ -1,9 +1,57 @@
-import { useEffect, useRef, useState } from "react";
-import { api, fmt } from "../api";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { api, fmt, loadCover, useCover } from "../api";
 import type { Comment, CommentPage, Episode } from "../types";
 import { useStore } from "../store";
+import { sanitizeHtml } from "../html";
+import { openUrl } from "@dashou/api/opener";
 import { Avatar, Empty } from "./ui";
 import { IClose, IHeart, ISendF } from "../icons";
+
+/* ================= 图文正文 ================= */
+/** 正文图片不能直连外网，逐张经 core 下载 / 解密后换成 data URL */
+export function ArticleBody({ html }: { html: string }) {
+  const safe = useMemo(() => sanitizeHtml(html), [html]);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const root = ref.current;
+    if (!root) return undefined;
+    let alive = true;
+    const images = Array.from(root.querySelectorAll<HTMLImageElement>("img[data-hg-src]"));
+    for (const img of images) {
+      const src = img.getAttribute("data-hg-src") || "";
+      if (!src) {
+        img.remove();
+        continue;
+      }
+      loadCover(src)
+        .then((dataUrl) => {
+          if (!alive) return;
+          if (dataUrl) img.src = dataUrl;
+          else img.remove();
+        })
+        .catch(() => {
+          if (alive) img.remove();
+        });
+    }
+    return () => {
+      alive = false;
+    };
+  }, [safe]);
+
+  const onClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const anchor = (event.target as HTMLElement).closest("a[href]");
+    if (!anchor) return;
+    event.preventDefault();
+    const href = anchor.getAttribute("href") || "";
+    if (/^https?:\/\//i.test(href)) openUrl(href).catch(() => {});
+  };
+
+  return (
+    <div ref={ref} className="article-body" onClick={onClick}
+      dangerouslySetInnerHTML={{ __html: safe }} />
+  );
+}
 
 /* ================= 选集 ================= */
 export function EpisodesPanel({ videoId, episodes, current, onPick, onClose }: {
@@ -148,6 +196,7 @@ export function CommentsPanel({ videoId, ep, total, kind = "video", onClose }: {
 export function ArticlePanel({ title, html, cover, hot, onClose }: {
   title: string; html: string; cover?: string; hot?: number; onClose: () => void;
 }) {
+  const coverSrc = useCover(cover);
   return (
     <div className="flex flex-col h-full">
       <div className="shrink-0 flex items-center gap-2 px-4 h-12">
@@ -158,9 +207,9 @@ export function ArticlePanel({ title, html, cover, hot, onClose }: {
         </button>
       </div>
       <div className="flex-1 scroll-y px-4 pb-6">
-        {cover && <img src={cover} alt="" className="w-full rounded-(--r-md) mb-3 object-cover" />}
+        {coverSrc && <img src={coverSrc} alt="" className="w-full rounded-(--r-md) mb-3 object-cover" />}
         <h2 className="text-[16px] font-bold text-on leading-snug">{title}</h2>
-        <div className="article-body mt-3" dangerouslySetInnerHTML={{ __html: html }} />
+        <div className="mt-3"><ArticleBody html={html} /></div>
         {!html && <p className="text-[12px] text-dim mt-4">这篇内容没有正文，可能只有图片或视频。</p>}
       </div>
     </div>

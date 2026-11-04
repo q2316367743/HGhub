@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, cover, fmt, platform } from "../api";
+import { api, copyText, fmt } from "../api";
 import type { Detail, User } from "../types";
 import { useStore } from "../store";
 import { Avatar, Empty, Img, Modal, Toggle } from "../components/ui";
@@ -211,7 +211,7 @@ export default function Profile({ wide }: { wide: boolean }) {
           </button>
         </div>
 
-        <div className="text-center text-[10px] text-dim mt-5">HGhub 1.0.0 · {platform === "android" ? "Android" : "Windows"} 客户端</div>
+        <div className="text-center text-[10px] text-dim mt-5">HGhub 1.0.0 · 搭手插件</div>
 
         <Modal open={about} onClose={() => setAbout(false)} width={392}>
           <div className="p-5">
@@ -234,13 +234,13 @@ export default function Profile({ wide }: { wide: boolean }) {
             </div>
 
             <div className="mt-4 divide-y divide-white/5">
-              <button onClick={() => { navigator.clipboard?.writeText("https://github.com/Minireel/HGhub").then(() => toast("仓库地址已复制", "ok")).catch(() => {}); }}
+              <button onClick={() => { copyText("https://github.com/Minireel/HGhub").then((ok) => toast(ok ? "仓库地址已复制" : "复制失败", ok ? "ok" : "info")); }}
                 className="w-full flex items-center gap-2 py-2.5 text-left pressable">
                 <ILink size={15} className="text-mut" />
                 <span className="text-[12px] text-on/85">github.com/Minireel/HGhub</span>
                 <span className="ml-auto text-[10.5px] text-primary">复制</span>
               </button>
-              <button onClick={() => { navigator.clipboard?.writeText("https://huangguoai.com").then(() => toast("站点地址已复制", "ok")).catch(() => {}); }}
+              <button onClick={() => { copyText("https://huangguoai.com").then((ok) => toast(ok ? "站点地址已复制" : "复制失败", ok ? "ok" : "info")); }}
                 className="w-full flex items-center gap-2 py-2.5 text-left pressable">
                 <ILink size={15} className="text-mut" />
                 <span className="text-[12px] text-on/85">huangguoai.com</span>

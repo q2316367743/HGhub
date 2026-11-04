@@ -2,10 +2,9 @@
 
 # HGhub
 
-**黄果短剧第三方客户端 · Rust + Tauri 2**
+**黄果短剧第三方客户端 · 搭手插件**
 
-Windows / Android 双端 · Fluent 设计 · 沉浸式竖屏播放
-![alt text](docs/image.png)
+沉浸式竖屏播放 · Fluent 设计 · 分类 / 榜单 / 搜索 / 吃瓜
 
 </div>
 
@@ -21,69 +20,93 @@ Windows / Android 双端 · Fluent 设计 · 沉浸式竖屏播放
 - **分类**：AI 短剧 / 漫剧 / 换脸 / 魔改 / 黄果吃瓜，支持 最新 / 最热 / 高分 排序与无限滚动
 - **排行榜**：热播榜 / 推荐榜 / 潜力榜
 - **搜索**：关键词搜索、搜索历史、热门题材、分页加载
-- **吃瓜**：图文与图文+视频混排，视频直接播放，纯图文在应用内阅读
+- **吃瓜**：图文与图文+视频混排，视频直接播放，图文正文在应用内阅读
 - **我的**：登录/注册、收藏与观看历史、深浅主题、关于、清理缓存
-- **双端外壳**：Windows 无边框标题栏 + 可折叠侧栏；Android 底部标签栏 + 安全区适配
 
 ## 技术栈
 
 | 层 | 选型 |
 | --- | --- |
-| 壳 | Tauri 2（Rust 1.9x） |
+| 宿主 | 搭手插件（core + 窗口） |
 | 前端 | React 19 + TypeScript + Vite 7 + Tailwind CSS 4 |
-| 播放 | hls.js（HLS / AES-128） |
-| 网络 | reqwest + rustls |
+| 播放 | hls.js（HLS / AES-128）+ 自定义 loader |
+| 网络 | core 的 Node（https / 系统代理 / 重试） |
 | 图标 | 内联 SVG |
 
 ## 目录
 
 ```
 .
-├─ src/                      前端
-│  ├─ api.ts                 接口封装 + 本地媒体协议 URL
+├─ src/                      窗口前端（React）
+│  ├─ api.ts                 core API 封装 + 格式化
+│  ├─ media.ts               封面 data URL 缓存 + 媒体伪地址 + 剪贴板
+│  ├─ hlsLoader.ts           hls.js 自定义 loader（全部请求交给 core）
 │  ├─ store.tsx              全局状态（导航栈 / 用户 / 本地收藏 / 主题）
-│  ├─ html.ts                吃瓜正文清洗与图片代理
-│  ├─ components/            Feed（播放页）/ VideoSurface / PlayerControls / Panels / UI
+│  ├─ html.ts                吃瓜正文清洗
+│  ├─ components/            Feed / VideoSurface / PlayerControls / Panels / UI
 │  └─ pages/                 Home / Search / Category / Profile / Posts
-├─ src-tauri/                Rust 后端
-│  └─ src/
-│     ├─ net.rs              请求层（边缘信封 + 重试）
-│     ├─ api.rs              业务命令
-│     ├─ media.rs            封面解密 + HLS 代理 + 缓存
-│     └─ session.rs          token 持久化
-└─ docs/API.md               接口文档
+├─ src-dashou/               插件根（plugin.json + core）
+│  ├─ plugin.json
+│  ├─ index.ts               core：登录 / 列表 / 详情 / 互动 / 媒体
+│  ├─ net.ts                 边缘信封 + Node 网络层 + 系统代理
+│  ├─ media.ts               封面 AES-128 解密 + HLS 播放列表改写
+│  ├─ session.ts             token / 用户持久化
+│  └─ assets/icon.png
+├─ src-tauri/                原 Tauri 工程，仅作迁移参考，不参与构建
+├─ docs/API.md               上游接口文档
+└─ dashou-dist/              构建产物（.dsp / 解包目录）
 ```
+
+## 与上游 Tauri 工程的差异
+
+| 原实现 | 现在 |
+| --- | --- |
+| Rust 命令 + `reqwest` | `src-dashou` 的 core（Node），窗口只通过 `@dashou/api` 调自定义 API |
+| 自定义协议 `hg://localhost` 代理封面 / HLS | core API：封面返回 data URL；m3u8 改写成 `dashou-media.local` 伪地址，由 hls.js 自定义 loader 回调 core 取字节 |
+| Tauri 无边框标题栏 / 拖拽缩放 | 保留无边框标题栏与 CSS `app-region: drag`；窗口按钮走 `@dashou/api/window`；缩放交给系统边缘 |
+| Android 底部标签栏 / 硬件返回键 | 移除（搭手是桌面宿主），只保留桌面侧栏布局 |
+| 应用数据目录 `session.json` | 插件数据目录 `$plugin-data/session.json` |
 
 ## 开发 / 构建
 
 ```bash
 pnpm install          # 首次安装
-pnpm app:dev          # 桌面端热重载
-pnpm app:build        # 打包 Windows 安装程序（NSIS）
+pnpm dev              # 前端热更新（配 plugin.json 的 build.devUrl）
+pnpm typecheck        # tsc --noEmit
+pnpm dev:core         # 构建并按开发版目录补一份 src-dashou/core.mjs
+pnpm plugin:build     # 打包 .dsp，同时补 src-dashou/core.mjs
 ```
 
-Android（需 Android SDK + NDK，并配置 `ANDROID_HOME` / `NDK_HOME`）：
+产物：`dashou-dist/com.dashou.hghub-1.0.0.dsp`。
 
-```bash
-pnpm android:init     # 首次生成 android 工程
-pnpm android:dev      # 真机 / 模拟器调试
-pnpm android:build    # 产出 APK
+加载方式：
+
+- **开发**：先 `pnpm dev`（UI）与 `pnpm dev:core`（core），搭手「开发者工具」→ 添加项目 → 选 `src-dashou`（插件根）→ 开发 / 打开；UI 改完热更新，改 core 后重跑 `pnpm dev:core` 并点「重新加载」。
+- **安装**：插件管理 → 安装插件 → 选 `.dsp`（或直接双击）。
+
+### 宿主 CSP 要求
+
+插件页面的生产 CSP 默认不含 `blob:`，而 hls.js 依赖 MSE 的 blob URL。本插件的 `plugin.json` 声明了：
+
+```json
+"csp": "media-src 'self' plugin: data: blob:; worker-src blob:"
 ```
 
-### 环境注意
+这依赖搭手宿主的 **插件级 CSP 支持**（`src/common/plugins/csp.ts` + `protocol.ts` / `windowGuards.ts`）。
+旧宿主的清单位置会忽略该字段：插件能装，但视频会报 `manifestLoadError` / 无法起播。
 
-- 工程若放在 **exFAT** 盘（不支持符号链接），需保留 `.npmrc` 中的 `node-linker=hoisted`。
-- `esbuild` 需在 `package.json` 的 `pnpm.onlyBuiltDependencies` 中放行，否则 `vite build` 缺少二进制。
+### 网络与代理
 
-## 实现要点
+core 的 Node 直连上游：
 
-1. **统一边缘信封**：站点把 `/api/**` 收敛为 `POST /api/edge/request`（`method/path/body(base64)/content_type` + `Authorization: Bearer`），本项目只对接这一个入口，无需处理 Cookie。
-2. **封面解密**：封面为 AES-128-CBC 密文，Rust 侧解密后经自定义协议输出，前端 `<img>` 直接使用。
-3. **HLS 代理**：m3u8 与分片经自定义协议转发并改写 `#EXT-X-KEY` / 分片地址，绕开 WebView 的 CORS 与防盗链。
-4. **自定义协议**：Windows 为 `http://hg.localhost/*`，Android 为 `https://hg.localhost/*`（由 Rust 侧按平台生成，避免 WebView 无法解析）。
-5. **不做签名逆向**：只复用浏览器同源行为，接口字段均有文档与实测样本。
+1. 优先 `HTTPS_PROXY` / `HTTP_PROXY` / `ALL_PROXY` 环境变量；
+2. 没有环境变量时读取系统代理（macOS `scutil --proxy`、Windows 注册表 `Internet Settings`、Linux `gsettings`）；
+3. 都失败时按直连处理，并做 3 次重试。
 
-接口细节见 [docs/API.md](docs/API.md)。
+## 接口
+
+接口细节见 [docs/API.md](docs/API.md)。站点把全部 `/api/**` 收敛为 `POST /api/edge/request`，
+core 只实现这一个信封，其余接口都是「填 path」。
 
 ## 免责声明
 
@@ -94,29 +117,7 @@ pnpm android:build    # 产出 APK
 ## License
 
 [MIT](LICENSE)
-## 常见问题
 
-**1. `pnpm install` 报 `ERR_PNPM_EISDIR ... symlink`**
+## 上游
 
-工程放在 exFAT / FAT32 盘时无法创建符号链接，保留 `.npmrc` 里的 `node-linker=hoisted` 即可。
-
-**2. `tauri android build` 报 `Failed to create a symbolic link ... jniLibs`**
-
-同样是 exFAT 不支持符号链接。可手动把 Rust 产物拷进 jniLibs，再直接跑 Gradle：
-
-```bash
-cp src-tauri/target/aarch64-linux-android/debug/libhuangguo_client_lib.so \
-   src-tauri/gen/android/app/src/main/jniLibs/arm64-v8a/
-
-cd src-tauri/gen/android
-./gradlew assembleDebug        # Windows: gradlew.bat assembleDebug
-```
-
-产物在 `src-tauri/gen/android/app/build/outputs/apk/`。
-
-**3. Android 构建提示找不到 SDK / NDK**
-
-需要设置 `ANDROID_HOME`（Android SDK 根目录）、`NDK_HOME`（`$ANDROID_HOME/ndk/<版本>`）与 `JAVA_HOME`（JDK 17）。
-
-## LinuxDO
-https://linux.do/
+原始工程：[Minireel/HGhub](https://github.com/Minireel/HGhub)（Rust + Tauri 2）。
