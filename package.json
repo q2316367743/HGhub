@@ -9,8 +9,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "dev:core": "dashou-plugin build && node scripts/copy-dev-core.mjs",
-    "plugin:build": "dashou-plugin build && node scripts/copy-dev-core.mjs"
+    "plugin:dev": "dashou-plugin dev",
+    "plugin:build": "dashou-plugin build"
   },
   "devDependencies": {
     "@dashou/api": "link:../../app/da-shou-plugin-ext/packages/api",

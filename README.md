@@ -45,16 +45,17 @@
 │  ├─ html.ts                吃瓜正文清洗
 │  ├─ components/            Feed / VideoSurface / PlayerControls / Panels / UI
 │  └─ pages/                 Home / Search / Category / Profile / Posts
-├─ src-dashou/               插件根（plugin.json + core）
+├─ src-dashou/               插件根（plugin.json + core + 生成物）
 │  ├─ plugin.json
 │  ├─ index.ts               core：登录 / 列表 / 详情 / 互动 / 媒体
 │  ├─ net.ts                 边缘信封 + Node 网络层 + 系统代理
 │  ├─ media.ts               封面 AES-128 解密 + HLS 播放列表改写
 │  ├─ session.ts             token / 用户持久化
-│  └─ assets/icon.png
+│  ├─ assets/icon.png
+│  ├─ core.mjs               dev 生成（gitignore）
+│  └─ dashou-dist/           build 生成（gitignore）
 ├─ src-tauri/                原 Tauri 工程，仅作迁移参考，不参与构建
-├─ docs/API.md               上游接口文档
-└─ dashou-dist/              构建产物（.dsp / 解包目录）
+└─ docs/API.md               上游接口文档
 ```
 
 ## 与上游 Tauri 工程的差异
@@ -71,17 +72,17 @@
 
 ```bash
 pnpm install          # 首次安装
-pnpm dev              # 前端热更新（配 plugin.json 的 build.devUrl）
+pnpm dev              # 只起前端热更新（配 plugin.json 的 build.devUrl）
 pnpm typecheck        # tsc --noEmit
-pnpm dev:core         # 构建并按开发版目录补一份 src-dashou/core.mjs
-pnpm plugin:build     # 打包 .dsp，同时补 src-dashou/core.mjs
+pnpm plugin:dev       # 起前端 + 把 core.mjs 打到 src-dashou/ 并 watch
+pnpm plugin:build     # 打包 .dsp
 ```
 
-产物：`dashou-dist/com.dashou.hghub-1.0.0.dsp`。
+产物：`src-dashou/dashou-dist/com.dashou.hghub-1.0.0.dsp`。
 
 加载方式：
 
-- **开发**：先 `pnpm dev`（UI）与 `pnpm dev:core`（core），搭手「开发者工具」→ 添加项目 → 选 `src-dashou`（插件根）→ 开发 / 打开；UI 改完热更新，改 core 后重跑 `pnpm dev:core` 并点「重新加载」。
+- **开发**：`pnpm plugin:dev`，搭手「开发者工具」→ 添加项目 → 选 `src-dashou`（插件根）→ 开发 / 打开；UI 改完热更新，改 core 会自动重建，点「重新加载」生效。
 - **安装**：插件管理 → 安装插件 → 选 `.dsp`（或直接双击）。
 
 ### 宿主 CSP 要求

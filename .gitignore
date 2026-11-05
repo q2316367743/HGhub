@@ -8,8 +8,10 @@ dist-ssr/
 src-tauri/target/
 src-tauri/gen/
 *.local
-# 开发版 core（由 scripts/copy-dev-core.mjs 从 dashou-dist 复制）
+# dashou-plugin dev / build 生成物
 src-dashou/core.mjs
+src-dashou/ui/
+src-dashou/dashou-dist/
 
 # 编辑器 / 系统
 .vscode/*

@@ -10,6 +10,7 @@ export default defineConfig({
   server: {
     port: 1420,
     strictPort: true,
+    watch: { ignored: ["**/src-dashou/dashou-dist/**", "**/src-dashou/ui/**"] },
   },
   build: {
     target: "es2022",
